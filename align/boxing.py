@@ -6,7 +6,7 @@ import align.align_dlib
 import cv2
 
 
-class Boxing:
+class Boxing(object):
 	def __init__(self):
 		pass
 	def get_multibox(self,img):
@@ -63,6 +63,17 @@ class OpencvBoxing(Boxing):
 		faces = self.facecascade.detectMultiScale(img,scaleFactor=self.scaleFactor,minNeighbors=self.minNeighbors)
 		return [(i[0],i[1],i[0] + i[2],i[1] + i[3])
 			for i in faces]
+
+class CenterBlindBoxing(Boxing):
+	def __init__(self):
+		super(CenterBlindBoxing,self).__init__()
+	def get_multibox(self,img):
+		return [(
+			img.shape[1] * 0.25,
+			img.shape[0] * 0.25,
+			img.shape[1] * 0.75,
+			img.shape[0] * 0.75,
+		)]
 
 class CascadeBoxing(Boxing):
 	def __init__(self):

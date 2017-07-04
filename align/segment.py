@@ -5,7 +5,7 @@ import align.align_dlib
 from align.align_dlib import TEMPLATE,MINMAX_TEMPLATE
 from scipy import misc
 
-class Segmenter:
+class Segmenter(object):
 	def __init__(self):
 		pass
 	def segment(self,img,box,landmarks):
@@ -56,13 +56,45 @@ class ExpandMarginSegmenter(Segmenter):
 		return [('expand-align',scaled)]
 
 class FacepartSegmenter(Segmenter):
-	def __init__(self,margin=0.83):
+	def __init__(self,margin=1.2,img_size=50):
 		"margin by pixel or float as ratio"
 		super(FacepartSegmenter,self).__init__()
 		self.margin = margin
+		self.img_size = img_size
 	
+	def get_center_margin_areas(self,img,box,cord,margin=0.6,image_size=50):
+		left,top,right,bottom = box
+		r_cir = int(max((right - left),(bottom - top) )/ 2)
+		if isinstance(margin,float):
+			margin = int(r_cir * margin)
+		bb = np.zeros(4, dtype=np.int32)
+		bb[0] = np.maximum(cord[0]-margin/2, 0)
+		bb[1] = np.maximum(cord[1]-margin/2, 0)
+		bb[2] = np.minimum(cord[0]+margin/2, img.shape[1])
+		bb[3] = np.minimum(cord[1]+margin/2, img.shape[0])
+		cropped = img[bb[1]:bb[3],bb[0]:bb[2],:]
+		scaled = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
+		return scaled
 	def segment(self,img,box,landmarks):
-		
+		names = ['facepart_{}'.format(i) for i in range(len(landmarks))]
+		return zip(names,
+			map(lambda x:self.get_center_margin_areas(img,box,x,self.margin,self.img_size),landmarks))
 		
 
 
+class CascadeSegmenter(Segmenter):
+	def __init__(self,segmenters=[TwodAlignSegmenter(),ExpandMarginSegmenter(),FacepartSegmenter()],prefix='cascade_segmenter_'):
+		"margin by other segmenters"
+		super(CascadeSegmenter,self).__init__()
+		self.__segmenters = segmenters
+		self.__prefix = prefix
+	
+	def add_segmenter(self,segmenter):
+		self.__segmenters.append(segmenter)
+		
+	def segment(self,img,box,landmarks):
+		retval = []
+		for ind,seg in enumerate(self.__segmenters):
+			retval += seg.segment(img,box,landmarks)
+			retval[-1] = ("{}_{}".format(self.__prefix,ind) + retval[-1][0],retval[-1][1])
+		return retval
