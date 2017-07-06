@@ -17,13 +17,15 @@ IMG_SIZE = int(sys.argv[2])
 NET_TYPE=sys.argv[1]
 BATCH_SIZE = int(sys.argv[3])
 GPU_CORE = sys.argv[4]
+HIDDEN = int(sys.argv[5])
+DECAY_STEP=int(sys.argv[6])
 creat_dirs = ['data/textlabel/','models']
 TRAIN_TXT = 'data/textlabel/train_align.txt'
 TEST_TXT = 'data/textlabel/test_align.txt'
 ID_DIR_TXT = 'data/textlabel/id_dir_align.txt'
-MODEL_FILE = "{}_{}".format(NET_TYPE,IMG_SIZE)
+MODEL_FILE = "{}_{}_{}".format(NET_TYPE,IMG_SIZE,HIDDEN)
 RUN_ID = MODEL_FILE
-assert(NET_TYPE in ['resnet34','vgg16'])
+assert(NET_TYPE in ['resnet34','resnet50','vgg16'])
 
 dataset = get_dataset(INPUT_DATADIR)
 dset_part_softmax = [i for i in dataset if len(i) > DATA_MORETHAN]
@@ -90,12 +92,43 @@ if NET_TYPE == 'resnet34':
 		# [6,6,512]
 		net = tflearn.global_avg_pool(net)
 		# [512]
-		fully_connect = tflearn.fully_connected(net,1000,activation='relu')
+		fully_connect = tflearn.fully_connected(net,HIDDEN,activation='relu')
 		# [1000]
 		net = tflearn.fully_connected(fully_connect,7211,activation='softmax')
 		# [7211]
 		#mom = tflearn.SGD(0.1,lr_decay=0.1,decay_step=3086 * 20)
-		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=3086 * 20)
+		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * 10)
+		reg = tflearn.regression(net,optimizer=mom,loss='categorical_crossentropy')
+		model = tflearn.DNN(reg,checkpoint_path='models/{}'.format(MODEL_FILE),max_checkpoints=100,session=sess)
+elif NET_TYPE == 'resnet50':
+	with tf.device("/gpu:{}".format(GPU_CORE)):
+		net = tflearn.input_data(shape=[None,IMG_SIZE,IMG_SIZE,3])
+		net = tflearn.conv_2d(net,32,4,1, regularizer='L2', weight_decay=0.0001)
+		# [64,64,32]
+		net = tflearn.max_pool_2d(net,3,2)
+		# [32,32,32]
+		net = tflearn.residual_bottleneck(net,3,32,128)
+		# [32,32,64]
+		net = tflearn.residual_bottleneck(net,1,64,256,downsample=True)
+		# [16,16,128]
+		net = tflearn.residual_bottleneck(net,3,64,256)
+		# [16,16,128]
+		net = tflearn.residual_bottleneck(net,1,128,512,downsample=True)
+		# [16,16,256]
+		net = tflearn.residual_bottleneck(net,5,128,512)
+		# [16,16,256]
+		net = tflearn.residual_bottleneck(net,1,256,1024,downsample=True)
+		# [6,6,512]
+		net = tflearn.residual_bottleneck(net,2,256,1024)
+		# [6,6,512]
+		net = tflearn.global_avg_pool(net)
+		# [512]
+		fully_connect = tflearn.fully_connected(net,HIDDEN,activation='relu')
+		# [1000]
+		net = tflearn.fully_connected(fully_connect,7211,activation='softmax')
+		# [7211]
+		#mom = tflearn.SGD(0.1,lr_decay=0.1,decay_step=3086 * 20)
+		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * DECAY_STEP)
 		reg = tflearn.regression(net,optimizer=mom,loss='categorical_crossentropy')
 		model = tflearn.DNN(reg,checkpoint_path='models/{}'.format(MODEL_FILE),max_checkpoints=100,session=sess)
 elif NET_TYPE == 'vgg16':
@@ -115,6 +148,6 @@ elif NET_TYPE == 'vgg16':
 
 
 sess.run(tf.global_variables_initializer())
-model.fit(train_x,train_y,n_epoch=200,validation_set=(test_x,test_y),snapshot_epoch=True,batch_size=BATCH_SIZE,run_id=RUN_ID,show_metric=True)
+model.fit(train_x,train_y,n_epoch=200,validation_set=(test_x,test_y),snapshot_epoch=True,shuffle=True,batch_size=BATCH_SIZE,run_id=RUN_ID,show_metric=True)
 
 
