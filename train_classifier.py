@@ -12,6 +12,7 @@ parser.add_argument('--decay_step',type=int,help='decay used in Momentum',defaul
 parser.add_argument('--img_morethan',type=int,help='chose categories contains more images than this param',default=20)
 parser.add_argument('--name',type=str,help='choose specific name for this model')
 parser.add_argument('--L2',type=bool,help='whether to use L2 regulizer',default=True)
+parser.add_argument('--datadir',type=str,help='where the data dir is, sorted in casia webface alike',default="data/CAS_aled_cs_1expand-align/")
 args = parser.parse_args(sys.argv[1:])
 
 from align.facenet import get_dataset
@@ -23,7 +24,7 @@ from tflearn.models import *
 import tensorflow as tf
 from tflearn.metrics import top_k_op
 
-INPUT_DATADIR = 'data/CAS_aled_cs_1expand-align/'
+INPUT_DATADIR = args.datadir
 TEST_SIZE = 0.1
 IMG_SIZE = args.image_size
 NET_TYPE= args.net_type
@@ -35,8 +36,12 @@ DATA_MORETHAN = args.img_morethan
 USE_L2 = args.L2
 print(args.image_size)
 creat_dirs = ['data/textlabel/','models']
-TRAIN_TXT = 'data/textlabel/train_align_{}.txt'.format(DATA_MORETHAN)
-TEST_TXT = 'data/textlabel/test_align_{}.txt'.format(DATA_MORETHAN)
+if args.name is not None:
+	TEST_TXT = 'data/textlabel/test_align_{}_{}.txt'.format(DATA_MORETHAN,args.name)
+	TRAIN_TXT = 'data/textlabel/train_align_{}_{}.txt'.format(DATA_MORETHAN,args.name)
+else:
+	TEST_TXT = 'data/textlabel/test_align_{}.txt'.format(DATA_MORETHAN)
+	TRAIN_TXT = 'data/textlabel/train_align_{}.txt'.format(DATA_MORETHAN)
 ID_DIR_TXT = 'data/textlabel/id_dir_align.txt'
 MODEL_FILE = "{}net_{}size_{}hidden_{}class".format(NET_TYPE,IMG_SIZE,HIDDEN,DATA_MORETHAN)
 if args.name is not None:
