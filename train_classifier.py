@@ -47,7 +47,7 @@ MODEL_FILE = "{}net_{}size_{}hidden_{}class".format(NET_TYPE,IMG_SIZE,HIDDEN,DAT
 if args.name is not None:
 	MODEL_FILE = "{}_{}".format(MODEL_FILE,args.name)
 RUN_ID = MODEL_FILE
-assert(NET_TYPE in ['resnet34','resnet50','vgg16','res-cp'])
+assert(NET_TYPE in ['resnet34','resnet50','vgg16','res-cp','inception-resnet-v2'])
 
 dataset = get_dataset(INPUT_DATADIR)
 dset_part_softmax = [i for i in dataset if len(i) > DATA_MORETHAN]
@@ -189,6 +189,17 @@ elif NET_TYPE == 'vgg16':
 		net = tflearn.regression(softmax, optimizer=momem,
                          loss='categorical_crossentropy')
 		model = tflearn.DNN(net, checkpoint_path='models/{}'.format(MODEL_FILE),session=sess,max_checkpoints=100,tensorboard_verbose=0)
+elif NET_TYPE == 'inception-resnet-v2':
+	with tf.device("/gpu:{}".format(GPU_CORE)):
+		from inception_resnet import *
+		input_dat = tflearn.input_data(shape=[None,IMG_SIZE,IMG_SIZE,3])
+		fully_connected,end_points = inception_resnet_v1(input_dat)
+		result = tflearn.fully_connected(fully_connected, 7211, activation='softmax')
+		# [7211]
+		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * 10,staircase=True)
+		reg = tflearn.regression(result,optimizer=mom,loss='categorical_crossentropy')
+		model = tflearn.DNN(reg,checkpoint_path='models/{}'.format(MODEL_FILE),max_checkpoints=100,session=sess)
+	
 		
 
 
