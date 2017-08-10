@@ -17,6 +17,7 @@ after the data is downloaded ,it should be placed at data/CASIA-WebFace dir.
 
 # use your own dataset
 CASIA-Webface have a directory structure like this:
+```
 - CASIA-WebFace
 |--- preson1
    |----pic1
@@ -26,6 +27,7 @@ CASIA-Webface have a directory structure like this:
    |----pic1
    |----pic2
    |---- ...
+```
 
 Any dataset have the similar structure should be okay. Put them in data directory, and modify the configure INPUT_DIR in the  preprocess_data.py and you are good to go.
 
