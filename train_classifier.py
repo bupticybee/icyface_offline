@@ -47,7 +47,7 @@ MODEL_FILE = "{}net_{}size_{}hidden_{}class".format(NET_TYPE,IMG_SIZE,HIDDEN,DAT
 if args.name is not None:
 	MODEL_FILE = "{}_{}".format(MODEL_FILE,args.name)
 RUN_ID = MODEL_FILE
-assert(NET_TYPE in ['resnet34','resnet50','vgg16','res-cp','inception-resnet-v2'])
+assert(NET_TYPE in ['resnet34','resnet50','resnet101','resnet152','vgg16','res-cp','inception-resnet-v2'])
 
 dataset = get_dataset(INPUT_DATADIR)
 dset_part_softmax = [i for i in dataset if len(i) > DATA_MORETHAN]
@@ -126,26 +126,32 @@ if NET_TYPE == 'resnet34':
 		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * 10,staircase=True)
 		reg = tflearn.regression(net,optimizer=mom,loss='categorical_crossentropy')
 		model = tflearn.DNN(reg,checkpoint_path='models/{}'.format(MODEL_FILE),max_checkpoints=100,session=sess)
-elif NET_TYPE == 'resnet50':
+elif NET_TYPE == 'resnet50' or NET_TYPE == 'resnet101' or NET_TYPE == 'resnet152':
 	with tf.device("/gpu:{}".format(GPU_CORE)):
 		net = tflearn.input_data(shape=[None,IMG_SIZE,IMG_SIZE,3])
-		net = tflearn.conv_2d(net,32,4,1, regularizer='L2', weight_decay=0.0001)
+		net = tflearn.conv_2d(net,64,7,2, regularizer='L2', weight_decay=0.0001)
 		# [64,64,32]
 		net = tflearn.max_pool_2d(net,3,2)
 		# [32,32,32]
-		net = tflearn.residual_bottleneck(net,3,32,128)
-		# [32,32,64]
-		net = tflearn.residual_bottleneck(net,1,64,256,downsample=True)
-		# [16,16,128]
 		net = tflearn.residual_bottleneck(net,3,64,256)
-		# [16,16,128]
+		# [32,32,64]
 		net = tflearn.residual_bottleneck(net,1,128,512,downsample=True)
-		# [16,16,256]
-		net = tflearn.residual_bottleneck(net,5,128,512)
-		# [16,16,256]
+		# [16,16,128]
+		net = tflearn.residual_bottleneck(net,3,128,512)
+		# [16,16,128]
 		net = tflearn.residual_bottleneck(net,1,256,1024,downsample=True)
+		# [16,16,256]
+		if NET_TYPE == 'resnet50':
+			net = tflearn.residual_bottleneck(net,5,256,1024)
+		elif NET_TYPE == 'resnet101':
+			net = tflearn.residual_bottleneck(net,22,256,1024)
+		elif NET_TYPE == 'resnet152':
+			net = tflearn.residual_bottleneck(net,35,256,1024)
+
+		# [16,16,256]
+		net = tflearn.residual_bottleneck(net,1,512,2048,downsample=True)
 		# [6,6,512]
-		net = tflearn.residual_bottleneck(net,2,256,1024)
+		net = tflearn.residual_bottleneck(net,2,512,2048)
 		# [6,6,512]
 		net = tflearn.global_avg_pool(net)
 		# [512]
@@ -154,7 +160,7 @@ elif NET_TYPE == 'resnet50':
 		net = tflearn.fully_connected(fully_connect,LEN_OUT,activation='softmax')
 		# [7211]
 		#mom = tflearn.SGD(0.1,lr_decay=0.1,decay_step=3086 * 20)
-		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * DECAY_STEP,staircase=True)
+		mom = tflearn.Momentum(0.01,lr_decay=0.1,decay_step=int(395000 / BATCH_SIZE) * 28,staircase=True)
 		reg = tflearn.regression(net,optimizer=mom,loss='categorical_crossentropy')
 		model = tflearn.DNN(reg,checkpoint_path='models/{}'.format(MODEL_FILE),max_checkpoints=100,session=sess)
 elif NET_TYPE == 'res-cp':
