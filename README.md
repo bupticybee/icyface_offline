@@ -48,7 +48,7 @@ The data processed will be restored in data dir
 # model training
 After all the data is prepared, we now can train our face recognization model, however, we do not train a model directly to determine whether two face belongs to the same preson, instead, we train a model to determine exactly what preson is in the picture. In CASIA-WebFace's case, it's a multi classification problem of appromixately 10,000 classes, which is much difficult problem.
 
-Our model is written on tflearn and tensorflow 1.1.0, we use a structure of 34 layer res-net, run
+Our model is written on tflearn and tensorflow 1.2.0, we use a structure of 34 layer res-net, run
 ```
 python3 train_classifier.py res-cp
 ```
@@ -72,7 +72,7 @@ You may found a data_analysis.ipnb in the project dir, follow the codes there to
 All of these are very strong and promising techniques had been used and achieved great results. 
 
 # requirements:
-tensorflow 1.1.0
+tensorflow 1.2.0
 tflearn 
 dlib for image preprocessing
 cv2 for image preprocessing
