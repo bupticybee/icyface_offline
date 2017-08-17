@@ -54,6 +54,8 @@ python3 train_classifier.py res-cp
 ```
 Some other model are available in the script,too.
 To train the model, it takes appromixately half a day and appromixately 20 epochs to train in a 1080ti gpu. After training, you should get a approximately 75 to 80 precent of accuracy
+Or you do not have the resource or the patience to train a model , you can try to use the following model trained by me:
+[https://pan.baidu.com/s/1pL9dNib](https://pan.baidu.com/s/1pL9dNib)
 
 # validate on lfw
 Face recognizetion algroithms are often validated on LFW to prove their power, you can download lfw dataset from the following links:
